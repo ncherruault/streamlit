@@ -100,7 +100,7 @@ df.set_index("Order_Date", inplace=True)
 # "ME" = Month End
 sales_by_month = (
     df.filter(items=["Sales"])
-    .groupby(pd.Grouper(freq="ME"))
+    .groupby(pd.Grouper(freq="M"))
     .sum()
 )
 
@@ -182,7 +182,7 @@ if selected_subcategories:
     sales_selected = (
         filtered_df
         .filter(items=["Sales"])
-        .groupby(pd.Grouper(freq="ME"))
+        .groupby(pd.Grouper(freq="M"))
         .sum()
     )
 
