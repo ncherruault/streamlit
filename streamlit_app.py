@@ -29,39 +29,118 @@ st.dataframe(sales_by_month)
 # Here the grouped months are the index and automatically used for the x axis
 st.line_chart(sales_by_month, y="Sales")
 
+# ============================================================
+# YOUR ADDITIONS
+# ============================================================
+
 st.write("## Your additions")
 
-st.write("### (1) add a drop down for Category")
-category = st.selectbox("Select a Category", sorted(df["Category"].unique()))
+# ------------------------------------------------------------
+# 1. Dropdown for Category
+# ------------------------------------------------------------
 
-st.write("### (2) add a multi-select for Sub_Category in the selected Category")
-sub_options = sorted(df[df["Category"] == category]["Sub_Category"].unique())
-selected_subs = st.multiselect("Select Sub_Categories", sub_options)
+st.write("### Select a Category")
 
-# Filter once, reuse for items 3-5
-filtered = df[(df["Category"] == category) & (df["Sub_Category"].isin(selected_subs))]
+category_options = sorted(df["Category"].dropna().unique())
 
-st.write("### (3) show a line chart of sales for the selected items in (2)")
-if selected_subs:
-    monthly_sales = filtered[["Sales"]].groupby(pd.Grouper(freq="M")).sum()
-    st.line_chart(monthly_sales, y="Sales")
+selected_category = st.selectbox(
+    "Category",
+    category_options
+)
+
+
+# ------------------------------------------------------------
+# 2. Multi-select for Sub_Category within selected Category
+# ------------------------------------------------------------
+
+category_df = df[df["Category"] == selected_category]
+
+subcategory_options = sorted(
+    category_df["Sub_Category"].dropna().unique()
+)
+
+selected_subcategories = st.multiselect(
+    "Select Sub-Categories",
+    subcategory_options,
+    default=subcategory_options
+)
+
+
+# ------------------------------------------------------------
+# Filter data based on selections
+# ------------------------------------------------------------
+
+filtered_df = category_df[
+    category_df["Sub_Category"].isin(selected_subcategories)
+]
+
+
+# ------------------------------------------------------------
+# 3. Line chart of sales for selected Sub-Categories
+# ------------------------------------------------------------
+
+st.write("### Sales Over Time")
+
+sales_selected = (
+    filtered_df
+    .filter(items=["Sales"])
+    .groupby(pd.Grouper(freq="M"))
+    .sum()
+)
+
+st.line_chart(
+    sales_selected,
+    y="Sales"
+)
+
+
+# ------------------------------------------------------------
+# 4. Metrics: Sales, Profit, Profit Margin
+# ------------------------------------------------------------
+
+total_sales = filtered_df["Sales"].sum()
+
+total_profit = filtered_df["Profit"].sum()
+
+if total_sales != 0:
+    profit_margin = (total_profit / total_sales) * 100
 else:
-    st.info("Select at least one Sub_Category to see the chart.")
+    profit_margin = 0
 
-st.write("### (4) show three metrics for the selected items in (2)")
-if selected_subs:
-    total_sales = filtered["Sales"].sum()
-    total_profit = filtered["Profit"].sum()
-    margin = (total_profit / total_sales) * 100 if total_sales != 0 else 0
 
-    # Overall margin across ALL products and categories (for item 5)
-    overall_margin = (df["Profit"].sum() / df["Sales"].sum()) * 100
+# ------------------------------------------------------------
+# 5. Compare selected profit margin to overall profit margin
+# ------------------------------------------------------------
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Sales", f"${total_sales:,.2f}")
-    col2.metric("Total Profit", f"${total_profit:,.2f}")
+overall_sales = df["Sales"].sum()
+overall_profit = df["Profit"].sum()
 
-    st.write("### (5) use the delta option in the overall profit margin metric")
-    col3.metric("Overall Profit Margin", f"{margin:.2f}%", delta=f"{margin - overall_margin:.2f}%")
-else:
-    st.info("Select at least one Sub_Category to see the metrics.")
+overall_profit_margin = (
+    overall_profit / overall_sales
+) * 100
+
+margin_difference = profit_margin - overall_profit_margin
+
+
+# Display the three metrics side by side
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(
+        "Total Sales",
+        f"${total_sales:,.2f}"
+    )
+
+with col2:
+    st.metric(
+        "Total Profit",
+        f"${total_profit:,.2f}"
+    )
+
+with col3:
+    st.metric(
+        "Profit Margin",
+        f"{profit_margin:.2f}%",
+        delta=f"{margin_difference:.2f}% vs overall"
+    )
